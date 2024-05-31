@@ -2,14 +2,25 @@ package main
 
 import (
 	"fmt"
-	"go-mail-api/internal/server"
+	"log/slog"
+	"os"
+
+	"github.com/braveokafor/go-mail-api/internal/server"
+	"github.com/braveokafor/go-mail-api/pkg/config"
 )
 
 func main() {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	slog.SetDefault(logger)
 
-	server := server.NewServer()
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		panic(fmt.Sprintf("cannot load config: %s", err))
+	}
 
-	err := server.ListenAndServe()
+	server := server.NewServer(*cfg)
+
+	err = server.ListenAndServe()
 	if err != nil {
 		panic(fmt.Sprintf("cannot start server: %s", err))
 	}

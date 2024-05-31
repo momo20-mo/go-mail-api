@@ -1,4 +1,4 @@
-module go-mail-api
+module github.com/braveokafor/go-mail-api
 
 go 1.22.1
 
