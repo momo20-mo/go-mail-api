@@ -1,0 +1,142 @@
+name: CI
+
+on:
+  push:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - "main"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      statuses: write
+    outputs:
+      golintOutcome: ${{ steps.golangci-lint.outcome }}
+      checkovOutcome: ${{ steps.checkov.outcome }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.22.1
+
+      - name: Run Go Lint
+        id: golangci-lint
+        continue-on-error: true
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.59
+
+      - name: Run Checkov
+        id: checkov
+        uses: bridgecrewio/checkov-action@v12.2500.0
+        continue-on-error: true
+        with:
+          directory: .
+          quiet: true
+
+  test:
+    runs-on: ubuntu-latest
+    outputs:
+      testOutcome: ${{ steps.test-go-app.outcome }}
+      testLog: ${{ steps.test-go-app.outputs.output }}
+      buildOutcome: ${{ steps.build-go-app.outcome }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.22.1
+
+      - name: Test Go App
+        id: test-go-app
+        working-directory: .
+        continue-on-error: true
+        run: |
+          OUTPUT=$(make test 2>&1)
+
+          echo "$OUTPUT"
+
+          OUTPUT=$(echo "$OUTPUT" | jq -R -s -c .)
+          echo "output=$OUTPUT" >> $GITHUB_OUTPUT
+
+      - name: Build Go App
+        id: build-go-app
+        working-directory: .
+        continue-on-error: true
+        run: |
+          make build
+
+  comment-on-pr:
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - name: PR Comment
+        uses: actions/github-script@v6
+        env:
+          testLog: "${{ needs.test.outputs.testLog }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const golintOutcome = "${{ needs.lint.outputs.golintOutcome }}";
+            const checkovOutcome = "${{ needs.lint.outputs.checkovOutcome }}";
+            const testOutcome = "${{ needs.test.outputs.testOutcome }}";
+            const testLog = JSON.parse(process.env.testLog);
+            const buildOutcome = "${{ needs.test.outputs.buildOutcome }}";
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment => comment.user.type === 'Bot' && comment.body.includes('Go Lint Results'));
+
+            const output = `#### Go Lint Results 🧹: \`${golintOutcome}\`
+            \n#### Checkov Results 🛡️: \`${checkovOutcome}\`
+            \n#### Test Results 🧪: \`${testOutcome}\`
+            \n#### Build Results 🏗️: \`${buildOutcome}\`
+            <details><summary>Test Logs</summary>
+
+            \`\`\`\n
+            ${testLog}
+            \`\`\`
+
+            </details>`;
+                             
+            if (botComment) {
+              github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: output
+              })
+            } else {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: output
+              })
+            }
