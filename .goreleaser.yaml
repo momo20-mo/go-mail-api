@@ -6,7 +6,8 @@ metadata:
   mod_timestamp: "{{ .CommitTimestamp }}"
 
 builds:
-  - env:
+  - main: ./cmd/api/main.go
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
