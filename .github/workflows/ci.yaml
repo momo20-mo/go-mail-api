@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       testOutcome: ${{ steps.test-go-app.outcome }}
-      testLog: ${{ steps.test-go-app.outputs.stdout }}
+      testLog: ${{ steps.test-go-app.outputs.output }}
       buildOutcome: ${{ steps.build-go-app.outcome }}
     steps:
       - name: Checkout
@@ -68,7 +68,12 @@ jobs:
         working-directory: .
         continue-on-error: true
         run: |
-          make test 2>&1
+          OUTPUT=$(make test 2>&1)
+
+          echo "$OUTPUT"
+
+          OUTPUT=$(echo "$OUTPUT" | jq -R -s -c .)
+          echo "output=$OUTPUT" >> $GITHUB_OUTPUT
 
       - name: Build Go App
         id: build-go-app
@@ -96,6 +101,7 @@ jobs:
             const golintOutcome = "${{ needs.lint.outputs.golintOutcome }}";
             const checkovOutcome = "${{ needs.lint.outputs.checkovOutcome }}";
             const testOutcome = "${{ needs.test.outputs.testOutcome }}";
+            const testLog = JSON.parse(process.env.testLog);
             const buildOutcome = "${{ needs.test.outputs.buildOutcome }}";
 
             const { data: comments } = await github.rest.issues.listComments({
@@ -113,7 +119,7 @@ jobs:
             <details><summary>Test Logs</summary>
 
             \`\`\`\n
-            ${process.env.testLog}
+            ${testLog}
             \`\`\`
 
             </details>`;
