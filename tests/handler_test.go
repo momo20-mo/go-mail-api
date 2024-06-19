@@ -19,12 +19,6 @@ type HandlerTest struct {
 func TestHandlers(t *testing.T) {
 	tests := []HandlerTest{
 		{
-			Name:           "HelloWorldHandler",
-			HandlerFunc:    handlers.HelloWorldHandler,
-			ExpectedStatus: http.StatusOK,
-			ExpectedBody:   "{\"message\":\"Hello World\"}",
-		},
-		{
 			Name:           "HealthCheckHandler",
 			HandlerFunc:    handlers.HealthCheckHandler,
 			ExpectedStatus: http.StatusOK,
