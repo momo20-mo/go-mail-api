@@ -41,7 +41,6 @@ func EmailHandler(w http.ResponseWriter, r *http.Request, cfg types.Config) {
 			http.Error(w, "Failed to send email", http.StatusInternalServerError)
 		}
 
-		//http.Error(w, "Failed to send email", http.StatusInternalServerError)
 		return
 	}
 
@@ -57,5 +56,6 @@ func EmailHandler(w http.ResponseWriter, r *http.Request, cfg types.Config) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(jsonResponse)
+
+	_, _ = w.Write(jsonResponse)
 }
