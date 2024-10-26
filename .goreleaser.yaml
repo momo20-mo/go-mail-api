@@ -83,6 +83,14 @@ docker_manifests:
     image_templates:
       - "ghcr.io/braveokafor/go-mail-api:v{{ .Version }}-amd64"
       - "ghcr.io/braveokafor/go-mail-api:v{{ .Version }}-arm64"
+  - name_template: "{{ if not .IsNightly }}braveokafor/go-mail-api:latest{{ end }}"
+    image_templates:
+      - "braveokafor/go-mail-api:v{{ .Version }}-amd64"
+      - "braveokafor/go-mail-api:v{{ .Version }}-arm64"
+  - name_template: "{{ if not .IsNightly }}ghcr.io/braveokafor/go-mail-api:latest{{ end }}"
+    image_templates:
+      - "ghcr.io/braveokafor/go-mail-api:v{{ .Version }}-amd64"
+      - "ghcr.io/braveokafor/go-mail-api:v{{ .Version }}-arm64"
 
 nfpms:
   - maintainer: Brave Okafor <okaforbrave@gmail.com>
