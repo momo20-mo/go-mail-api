@@ -1,42 +1,76 @@
-# Simple Makefile for a Go project
+.PHONY: all build test lint security doc clean help
 
-# Build the application
-all: build
+# Define variables
+GO := go
+GOLINT := golint
+GOLANGCI_LINT := golangci-lint
+GODOC := godoc
 
+# Check for necessary tools
+ifeq (, $(shell which $(GO)))
+	$(error "Go not found. Please install Go")
+endif
+
+# Default target
+all: build test lint
+
+# Build the Go application
 build:
-	@echo "Building..."
-	
-	@go build -o main cmd/api/main.go
+	@echo "Building Go application..."
+	@$(GO) build -o dist/app cmd/main.go
 
-# Run the application
-run:
-	@go run cmd/api/main.go
-
-# Test the application
+# Run tests
 test:
-	@echo "Testing..."
-	@go test -v -race -covermode=atomic ./...
+	@echo "Running tests..."
+	@$(GO) test ./... -v
 
-# Clean the binary
-clean:
-	@echo "Cleaning..."
-	@rm -f main
-
-# Live Reload
-watch:
-	@if command -v air > /dev/null; then \
-	    air; \
-	    echo "Watching...";\
+# Run static analysis with golint and golangci-lint
+lint:
+	@if command -v $(GOLANGCI_LINT) >/dev/null 2>&1; then \
+		echo "Running golangci-lint..."; \
+		$(GOLANGCI_LINT) run; \
+	elif command -v $(GOLINT) >/dev/null 2>&1; then \
+		echo "Running golint..."; \
+		$(GOLINT) ./...; \
 	else \
-	    read -p "Go's 'air' is not installed on your machine. Do you want to install it? [Y/n] " choice; \
-	    if [ "$$choice" != "n" ] && [ "$$choice" != "N" ]; then \
-	        go install github.com/cosmtrek/air@latest; \
-	        air; \
-	        echo "Watching...";\
-	    else \
-	        echo "You chose not to install air. Exiting..."; \
-	        exit 1; \
-	    fi; \
+		echo "Neither golangci-lint nor golint found. Please install one to run static code analysis."; \
+		exit 1; \
 	fi
 
-.PHONY: all build run test clean
+# Run security analysis (if gosec is available)
+security:
+	@if command -v gosec >/dev/null 2>&1; then \
+		echo "Running gosec for security analysis..."; \
+		gosec ./...; \
+	else \
+		echo "gosec not found. Please install gosec to run security analysis."; \
+		exit 1; \
+	fi
+
+# Generate Go documentation (requires godoc)
+doc:
+	@if command -v $(GODOC) >/dev/null 2>&1; then \
+		echo "Starting documentation server on http://localhost:6060..."; \
+		$(GODOC) -http=:6060; \
+	else \
+		echo "godoc not found. Please install godoc to generate documentation."; \
+		exit 1; \
+	fi
+
+# Clean up build artifacts
+clean:
+	@echo "Cleaning up..."
+	@rm -rf bin
+	@echo "Cleaned up build artifacts."
+
+# Help
+help:
+	@echo "Available targets:"
+	@echo "  build    - Build the Go application"
+	@echo "  test     - Run tests for the Go application"
+	@echo "  lint     - Run linting and static analysis (requires golint or golangci-lint)"
+	@echo "  security - Run security analysis (requires gosec)"
+	@echo "  doc      - Start documentation server (requires godoc)"
+	@echo "  clean    - Remove build artifacts"
+	@echo ""
+	@echo "Usage: make [target]"

@@ -29,18 +29,18 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.22.1
+          go-version: 1.23
 
       - name: Run Go Lint
         id: golangci-lint
         continue-on-error: true
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.59
+          version: v1.61.0
 
       - name: Run Checkov
         id: checkov
-        uses: bridgecrewio/checkov-action@v12.2500.0
+        uses: bridgecrewio/checkov-action@v12.2884.0
         continue-on-error: true
         with:
           directory: .
@@ -61,7 +61,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.22.1
+          go-version: 1.23
 
       - name: Test Go App
         id: test-go-app

@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/braveokafor/go-mail-api/internal/handlers"
+	"github.com/braveokafor/go-mail-api/handlers"
 )
 
 type HandlerTest struct {
@@ -20,9 +20,9 @@ func TestHandlers(t *testing.T) {
 	tests := []HandlerTest{
 		{
 			Name:           "HealthCheckHandler",
-			HandlerFunc:    handlers.HealthCheckHandler,
+			HandlerFunc:    handlers.HealthCheck,
 			ExpectedStatus: http.StatusOK,
-			ExpectedBody:   "{\"message\":\"ok\"}",
+			ExpectedBody:   "{\"message\": \"ok\"}",
 		},
 	}
 
