@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/braveokafor/go-mail-api/config"
@@ -12,33 +13,32 @@ import (
 )
 
 var (
-	cfg *config.Config
+	smtpClient *mail.SMTPClient
+	once       sync.Once
+	cfg        *config.Config
 )
 
-// InitializeSMTPClient 每次调用新建一个 SMTPClient
-func InitializeSMTPClient() (*mail.SMTPClient, error) {
+func InitializeSMTPClient() {
 	smtpServer := mail.NewSMTPClient()
 
 	smtpServer.Host = cfg.SMTPConfig.Host
 	smtpServer.Port = cfg.SMTPConfig.Port
 	smtpServer.Username = cfg.SMTPConfig.Username
 	smtpServer.Password = cfg.SMTPConfig.Password
+	smtpServer.KeepAlive = false
 	smtpServer.ConnectTimeout = 30 * time.Second
 	smtpServer.SendTimeout = 30 * time.Second
-
-	// 根据配置使用 TLS
+	smtpServer.Encryption = mail.EncryptionNone
 	if cfg.SMTPConfig.UseTLS {
 		smtpServer.Encryption = mail.EncryptionTLS
-	} else {
-		smtpServer.Encryption = mail.EncryptionNone
 	}
 
+	var err error
 	log.Println("Connecting to SMTP server...")
-	smtpClient, err := smtpServer.Connect()
+	smtpClient, err = smtpServer.Connect()
 	if err != nil {
-		return nil, err
+		log.Fatalf("Failed to connect to SMTP server: %v", err)
 	}
-	return smtpClient, nil
 }
 
 func SendEmail(w http.ResponseWriter, r *http.Request) {
@@ -53,14 +53,7 @@ func SendEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 每次请求新建连接
-	smtpClient, err := InitializeSMTPClient()
-	if err != nil {
-		log.Println("Failed to connect to SMTP server:", err)
-		http.Error(w, `{"error": "Failed to connect to SMTP server"}`, http.StatusInternalServerError)
-		return
-	}
-	defer smtpClient.Close() // 发送完关闭连接
+	once.Do(InitializeSMTPClient)
 
 	email := mail.NewMSG()
 	email.SetFrom(emailReq.From).
