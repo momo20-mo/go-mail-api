@@ -27,7 +27,7 @@ jobs:
       - name: Build Go binary
         run: |
           # 确保编译出来的二进制在工作目录
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o go-mail-api ./cmd/go-mail-api
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o go-mail-api ./cmd
           ls -lh go-mail-api
 
       # 4. 设置 Docker Buildx (支持多平台)
